@@ -1,0 +1,92 @@
+mock_users = [
+    {
+        "id": "c860465b-d761-4bc8-8591-b22bbd4c8d73",
+        "username": "rick_sanchez",
+        "email": "rick@citadel.com",
+        "full_name": "Rick Sanchez",
+        "is_active": True,
+        "hashed_password": "hashed_password_1",
+        "created_at": "2026-05-01T09:45:34Z"
+    },
+    {
+        "id": "7184a97f-4010-41db-abf4-c2c45690c113",
+        "username": "morty_smith",
+        "email": "morty@earth.com",
+        "full_name": "Morty Smith",
+        "is_active": True,
+        "hashed_password": "hashed_password_2",
+        "created_at": "2026-05-01T09:45:34Z"
+    },
+    {
+        "id": "34ed9d05-1863-4f8a-9adb-b55807817a37",
+        "username": "summer_s",
+        "email": "summer@earth.com",
+        "full_name": "Summer Smith",
+        "is_active": True,
+        "hashed_password": "hashed_password_3",
+        "created_at": "2026-05-01T09:45:34Z"
+    },
+    {
+        "id": "855e45e1-d8f5-4b32-a1d1-1aa5d22eb9ae",
+        "username": "beth_s",
+        "email": "beth@earth.com",
+        "full_name": "Beth Smith",
+        "is_active": True,
+        "hashed_password": "hashed_password_4",
+        "created_at": "2026-05-01T09:45:34Z"
+    },
+    {
+        "id": "6ae4d0fa-f5ca-4c18-8bfa-09e13c11dde4",
+        "username": "jerry_s",
+        "email": "jerry@earth.com",
+        "full_name": "Jerry Smith",
+        "is_active": False,
+        "hashed_password": "hashed_password_5",
+        "created_at": "2026-05-01T09:45:34Z"
+    },
+    {
+        "id": "73bbf646-01f3-41b1-8722-1f983f513922",
+        "username": "bird_person",
+        "email": "bp@galaxy.com",
+        "full_name": "Bird Person",
+        "is_active": True,
+        "hashed_password": "hashed_password_6",
+        "created_at": "2026-05-01T09:45:34Z"
+    },
+    {
+        "id": "7846ad6d-432c-4986-ae08-23956c249bfe",
+        "username": "squanchy",
+        "email": "squanch@planet.com",
+        "full_name": "Squanchy",
+        "is_active": True,
+        "hashed_password": "hashed_password_7",
+        "created_at": "2026-05-01T09:45:34Z"
+    },
+    {
+        "id": "481c97fe-cbc6-4179-ae57-c62372c4402c",
+        "username": "unity_hive",
+        "email": "unity@collective.com",
+        "full_name": "Unity",
+        "is_active": True,
+        "hashed_password": "hashed_password_8",
+        "created_at": "2026-05-01T09:45:34Z"
+    },
+    {
+        "id": "69c00277-89ee-49cb-ab19-57795eebd5bd",
+        "username": "mr_meeseeks",
+        "email": "lookatme@box.com",
+        "full_name": "Mr. Meeseeks",
+        "is_active": True,
+        "hashed_password": "hashed_password_9",
+        "created_at": "2026-05-01T09:45:34Z"
+    },
+    {
+        "id": "6f727ccb-a2f9-4e14-9116-96beb6d50a65",
+        "username": "poopybutthole",
+        "email": "oowee@university.com",
+        "full_name": "Mr. Poopybutthole",
+        "is_active": True,
+        "hashed_password": "hashed_password_10",
+        "created_at": "2026-05-01T09:45:34Z"
+    }
+]
