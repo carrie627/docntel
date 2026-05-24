@@ -128,8 +128,8 @@ async def extract_document_and_save(path, current_user_id, doc_id, filename):
                 id=point_id,
                 vector=vector,
                 payload={
-                    "user_id": current_user_id,
-                    "doc_id": doc_id,
+                    "user_id": str(current_user_id),
+                    "doc_id": str(doc_id),
                     "chunk_index": idx,
                     "text": chunk,
                     "source": filename
@@ -143,11 +143,7 @@ async def extract_document_and_save(path, current_user_id, doc_id, filename):
     )
 
 
-async def search_documents(
-    query: str,
-    current_user_id: str,
-    limit: int = 5
-):
+async def search_documents(query: str, current_user_id: str, limit: int = 3):
 
     if not query.strip():
         return []
@@ -166,7 +162,7 @@ async def search_documents(
                 models.FieldCondition(
                     key="user_id",
                     match=models.MatchValue(
-                        value=current_user_id
+                        value=str(current_user_id)
                     )
                 )
             ]

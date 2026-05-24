@@ -4,6 +4,7 @@ from uuid import uuid4
 from datetime import timedelta
 from fastapi import APIRouter, HTTPException, status, Depends, Query, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import selectinload
 from ....models.models import UserCreate, UserWithToken, User, UserPrivate, Token, UserUpdate, PasswordChange
 from typing import Annotated
@@ -170,7 +171,7 @@ async def create_user(token: Annotated[str, Depends(oauth2_scheme)]):
     return token
 
 
-@router.post("/create", response_model=UserWithToken)
+@router.post("/create")
 async def create_user(user: UserCreate, session: AsyncSessionDep):
     statement = select(User).where(User.username == user.username)
     result = await session.exec(statement)
@@ -202,11 +203,31 @@ async def create_user(user: UserCreate, session: AsyncSessionDep):
     await session.commit()
     await session.refresh(new_user)
 
-    return {
-        "user": new_user,
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+    response = JSONResponse(
+        content={
+            "message": "Sign up successful",
+            "user": new_user,
+        }
+    )
+
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        # Change httponly to true in production. Now false for postman test
+        httponly=False,
+        secure=False,
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+        path="/"
+    )
+
+    return response
+
+    # return {
+    #     "user": new_user,
+    #     "access_token": access_token,
+    #     "token_type": "bearer"
+    # }
 
 
 @router.get("/{user_id}", response_model=UserPrivate, dependencies=[Depends(allow_admin)])
@@ -223,7 +244,7 @@ async def get_user_by_id(user_id: str, session: AsyncSessionDep):
 
 
 @router.post("/token")
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], session: AsyncSessionDep) -> Token:
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], session: AsyncSessionDep):
 
     userObj = await get_user(form_data.username, session)
     user = await authenticate_user(userObj, form_data.password)
@@ -240,7 +261,23 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
         expires_delta=access_token_expires,
     )
 
-    return Token(access_token=access_token, token_type="bearer")
+    response = JSONResponse(
+        content={
+            "message": "Login successful"
+        }
+    )
+
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        # Change httponly to true in production. Now false for postman test
+        httponly=False,
+        secure=False,
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60
+    )
+
+    return response
 
 
 @router.delete("/me")
@@ -272,3 +309,19 @@ async def delete_user(user_id: str, session: AsyncSessionDep):
     await session.commit()
 
     return {"message": "User deleted successfully"}
+
+
+@router.post("/logout")
+async def logout():
+
+    response = JSONResponse(
+        content={
+            "message": "Logged out"
+        }
+    )
+
+    response.delete_cookie(
+        "access_token"
+    )
+
+    return response

@@ -213,6 +213,20 @@ class Message(MessageBase, table=True):
         back_populates="messages"
     )
 
+
+class MessageCreate(SQLModel):
+    content: str = Field(
+        min_length=1
+    )
+
+
+class MessageResponse(SQLModel):
+    id: UUID
+    role: str
+    content: str
+    sources: str | None
+    created_at: datetime
+
 # class MessageBase(SQLModel):
 #     role: str
 #     content: str
