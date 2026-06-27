@@ -62,3 +62,4 @@ async def stream_ai_response(prompt: str):
 
         if content:
             yield content
+            await asyncio.sleep(0)

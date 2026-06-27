@@ -7,6 +7,7 @@ from .services.vector_db import init_vector_db
 from .core.config import get_settings, Settings
 from pathlib import Path
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
 
 
 @asynccontextmanager
@@ -23,6 +24,21 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     lifespan=lifespan
+)
+
+
+origins = [
+    "http://localhost:3000",  # Default Next.js local port
+    # "https://yourdomain.com", # Add production domain here later
+]
+
+# 2. Add the CORS middleware to your app instance
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,       # Allows your frontend to connect
+    allow_credentials=True,      # Required because your fetch has credentials: "include"
+    allow_methods=["*"],         # Allows GET, POST, PUT, DELETE, etc.
+    allow_headers=["*"],         # Allows all headers
 )
 
 

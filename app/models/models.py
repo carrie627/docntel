@@ -5,6 +5,7 @@ from sqlmodel import SQLModel, Field, Relationship, JSON
 from sqlalchemy import Column, DateTime, JSON
 from pydantic import EmailStr
 from enum import Enum
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 class UserBase(SQLModel):
@@ -71,9 +72,11 @@ class DocumentBase(SQLModel):
     file_path: str
     file_type: str
     file_size: int
-    status: str = "uploaded"
+    status: str = Field(default="uploading")
+    progress: int = Field(default=0)
 
     user_id: UUID = Field(foreign_key="user.id", ondelete="CASCADE")
+    chat_id: UUID = Field(foreign_key="chat.id")
 
 
 class Document(DocumentBase, table=True):
@@ -88,6 +91,7 @@ class Document(DocumentBase, table=True):
     )
 
     user: User = Relationship(back_populates="documents")
+    chat: "Chat" = Relationship(back_populates="documents")
 
 
 class DocumentResponse(DocumentBase):
@@ -162,6 +166,10 @@ class Chat(ChatBase, table=True):
         back_populates="chats"
     )
 
+    documents: list["Document"] = Relationship(back_populates="chat", sa_relationship_kwargs={
+        "cascade": "all, delete-orphan"
+    })
+
 
 class ChatCreate(SQLModel):
     title: str | None = "New Chat"
@@ -178,13 +186,20 @@ class ChatUpdate(SQLModel):
     title: str
 
 
+class SourceItem(SQLModel):
+    doc_id: str
+    source: str
+    page: str
+
+
 class MessageBase(SQLModel):
 
     role: str
 
     content: str
 
-    sources: Optional[str] = None
+    sources: Optional[List[SourceItem]] = Field(
+        default=None, sa_column=Column(JSONB))
 
     chat_id: UUID = Field(
         foreign_key="chat.id",
@@ -215,6 +230,7 @@ class Message(MessageBase, table=True):
 
 
 class MessageCreate(SQLModel):
+    role: str = "user"
     content: str = Field(
         min_length=1
     )
@@ -224,7 +240,7 @@ class MessageResponse(SQLModel):
     id: UUID
     role: str
     content: str
-    sources: str | None
+    sources: Optional[List[SourceItem]]
     created_at: datetime
 
 # class MessageBase(SQLModel):

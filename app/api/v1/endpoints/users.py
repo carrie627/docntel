@@ -5,6 +5,7 @@ from datetime import timedelta
 from fastapi import APIRouter, HTTPException, status, Depends, Query, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import selectinload
 from ....models.models import UserCreate, UserWithToken, User, UserPrivate, Token, UserUpdate, PasswordChange
 from typing import Annotated
@@ -203,10 +204,12 @@ async def create_user(user: UserCreate, session: AsyncSessionDep):
     await session.commit()
     await session.refresh(new_user)
 
+    serializable_user = jsonable_encoder(new_user)
+
     response = JSONResponse(
         content={
             "message": "Sign up successful",
-            "user": new_user,
+            "user": serializable_user,
         }
     )
 
@@ -261,9 +264,12 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
         expires_delta=access_token_expires,
     )
 
+    serializable_user = jsonable_encoder(user)
+
     response = JSONResponse(
         content={
-            "message": "Login successful"
+            "message": "Login successful",
+            "user": serializable_user,
         }
     )
 

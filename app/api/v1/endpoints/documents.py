@@ -1,15 +1,17 @@
 import aiofiles
+import asyncio
 from pathlib import Path
-from uuid import uuid4
+from uuid import uuid4, UUID
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Depends, File, UploadFile
-from ....models.models import User, Document, DocumentResponse
-from typing import Annotated
+from ....models.models import User, Document, DocumentResponse, Chat, Message
+from typing import Annotated, AsyncIterable
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from ....db.database import get_session
 from ....services.vector_db import extract_document_and_save
 from ....core.config import Settings, get_settings
 from ..deps.user_deps import get_current_active_user, RoleChecker
+from uuid import uuid4
 
 
 router = APIRouter()
@@ -34,13 +36,30 @@ async def read_docs(current_user: Annotated[User, Depends(get_current_active_use
     return docs
 
 
-@router.post("/upload")
+@router.post("/{chat_id}/documents")
 async def upload_document(
-    background_tasks: BackgroundTasks,
+    chat_id: UUID,
     file: Annotated[UploadFile, File(description="Upload document")],
     current_user: Annotated[User, Depends(get_current_active_user)],
     session: AsyncSessionDep
 ):
+
+    chat = (await session.exec(select(Chat).where(Chat.id == chat_id, Chat.user_id == current_user.id))).first()
+
+    print("request received")
+
+    if not chat:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chat not found",
+        )
+
+    if not chat.user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="You have no permission for this chat.",
+        )
+
     allowed_types = [
         "application/pdf",
         "text/plain",
@@ -66,13 +85,16 @@ async def upload_document(
             file_size += len(content)
             await buffer.write(content)
 
+    print("File saved to disk")
+
     document = Document(
         filename=file.filename,
         file_path=str(file_path),
         file_type=file.content_type,
         file_size=file_size,
         status="uploaded",
-        user_id=current_user.id
+        user_id=current_user.id,
+        chat_id=chat_id
     )
 
     current_user_id = str(current_user.id)
@@ -82,20 +104,36 @@ async def upload_document(
     await session.commit()
     await session.refresh(document)
 
+    print("File saved to db")
+
     document_id = str(document.id)
 
-    background_tasks.add_task(
-        extract_document_and_save,
-        str(file_path),
-        current_user_id,
-        document_id,
-        doc_filename
+    asyncio.create_task(
+        extract_document_and_save(
+            str(file_path),
+            current_user_id,
+            document_id,
+            doc_filename,
+        )
     )
 
+    message_id = uuid4()
+    message = Message(
+        id=message_id,
+        role="user",
+        content=doc_filename,
+        chat_id=chat_id
+    )
+
+    session.add(message)
+    await session.commit()
+    await session.refresh(message)
+
     return {
-        "message": "Document uploaded successfully",
-        "document_id": document.id,
-        "filename": document.filename,
+        "id": message_id,
+        "role": "user",
+        "content": doc_filename,
+        "sources": None
     }
 
 

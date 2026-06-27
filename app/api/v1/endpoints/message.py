@@ -12,6 +12,7 @@ from ....db.database import get_session
 from ....services.vector_db import search_documents
 from ....services.llm import build_context, build_rag_prompt, stream_ai_response
 import time
+from ....websocket.manager import manager
 
 message_router = APIRouter()
 AsyncSessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -49,7 +50,7 @@ async def create_message(chat_id: UUID, data: MessageCreate, current_user: Annot
         )
 
     message = Message(
-        role="user",
+        role=data.role,
         content=data.content,
         chat_id=chat_id,
     )
@@ -139,7 +140,7 @@ async def websocket_chat(
     session: AsyncSessionDep
 ):
 
-    await websocket.accept()
+    await manager.connect(str(current_user.id), websocket)
     current_user_id = current_user.id
 
     try:
@@ -169,6 +170,22 @@ async def websocket_chat(
 
             results = await search_documents(question, current_user_id)
 
+            seen = set()
+            sources = []
+
+            for r in results:
+                key = (r["doc_id"], r["page"])
+
+                print(type(r["page"]))
+
+                if key not in seen:
+                    seen.add(key)
+                    sources.append({
+                        "doc_id": r["doc_id"],
+                        "source": r["source"],
+                        "page": r["page"],
+                    })
+
             context = build_context(results)
 
             prompt = build_rag_prompt(context=context, question=question)
@@ -178,17 +195,42 @@ async def websocket_chat(
             async for token in stream_ai_response(prompt):
                 full_response += token
 
-                await websocket.send_text(token)
+                # await websocket.send_text(token)
+                await manager.send(
+                    str(current_user_id),
+                    {
+                        "type": "chat_token",
+                        "token": token
+                    },
+                )
 
-            await websocket.send_text("[done]")
+            # 4. Conditional Check: If the LLM failed to find it, clear out the sources list!
+            fallback_phrases = ["i could not find this information in the documents.",
+                                "could not find", "don't know", "no information"]
+            if any(phrase in full_response.lower() for phrase in fallback_phrases):
+                sources = None  # Clear the sources list so it saves as NULL/None in DB
+
+            # await websocket.send_text("[done]")
+            await manager.send(
+                str(current_user_id),
+                {
+                    "type": "chat_done",
+                    "sources": sources
+                },
+            )
+
+            chat.updated_at = datetime.now(timezone.utc)
 
             assistant_message = Message(
                 role="assistant",
                 content=full_response,
                 chat_id=chat_id,
+                sources=sources,
             )
 
             session.add(assistant_message)
             await session.commit()
     except WebSocketDisconnect:
         print("Client Disconnected")
+    finally:
+        manager.disconnect(str(current_user_id), websocket)
